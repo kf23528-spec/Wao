@@ -1,251 +1,1281 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>THE CLICKER - 究極の連打ゲーム</title>
-    <style>
-        :root {
-            --bg: #1a1a2e;
-            --accent: #0f3460;
-            --text: #e94560;
-        }
-        body {
-            font-family: sans-serif;
-            background-color: var(--bg);
-            color: white;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            overflow: hidden;
-            user-select: none;
-        }
-        /* ゲーム画面 */
-        #game-ui {
-            text-align: center;
-        }
-        #score {
-            font-size: 80px;
-            font-weight: bold;
-            color: var(--text);
-            margin: 20px 0;
-        }
-        .tap-area {
-            width: 200px;
-            height: 200px;
-            background: var(--accent);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            box-shadow: 0 0 20px rgba(233, 69, 96, 0.3);
-            cursor: pointer;
-            transition: transform 0.1s;
-        }
-        .tap-area:active {
-            transform: scale(0.9);
-        }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+<title>オフライン放置 — 大長期版（Part1: 前半）</title>
+<style>
+/* ========= 基本スタイル (モバイル/iPad対応) ========= */
+:root{
+  --bg1:#051426; --bg2:#071a2a; --card:#0b2540; --accent:#ffd166;
+  --muted:#a9c0d8; --good:#7ef29b; --danger:#ff9b9b;
+  --glass: rgba(255,255,255,0.03);
+  --maxW:1100px;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP","Noto Sans",sans-serif;background:linear-gradient(180deg,var(--bg1),var(--bg2));color:#eaf6ff;-webkit-font-smoothing:antialiased}
+.wrap{max-width:var(--maxW);margin:0 auto;padding:12px;min-height:100vh;display:flex;flex-direction:column;gap:12px}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.title{font-weight:900;font-size:18px}
+.title .sub{font-weight:600;font-size:12px;color:var(--muted)}
+.top-stats{display:flex;gap:8px;align-items:center}
+.stat{background:var(--glass);padding:10px 12px;border-radius:12px;font-weight:800;font-size:14px;min-width:100px;text-align:center;box-shadow:0 8px 26px rgba(0,0,0,0.6)}
 
-        /* 隠し要素 */
-        #video-container {
-            position: fixed;
-            top: -1000px; /* 画面外に隠す */
-            left: 0;
-        }
-        
-        /* 管理画面 */
-        #gallery {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: #121212;
-            z-index: 1000;
-            padding: 20px;
-            overflow-y: auto;
-        }
-        .photo-card {
-            background: #222;
-            margin-bottom: 15px;
-            padding: 10px;
-            border-radius: 8px;
-        }
-        .photo-card img {
-            width: 100%;
-            border-radius: 4px;
-        }
-        
-        #setup-screen {
-            position: fixed;
-            inset: 0;
-            background: var(--bg);
-            z-index: 2000;
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-        input {
-            padding: 12px;
-            border-radius: 5px;
-            border: none;
-            margin: 10px;
-            width: 80%;
-        }
-        button {
-            padding: 10px 20px;
-            background: var(--text);
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .admin-trigger {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            opacity: 0.1; /* ほとんど見えない */
-            font-size: 10px;
-        }
-    </style>
+main{flex:1;display:flex;gap:12px;align-items:flex-start}
+.left{flex:1;display:flex;flex-direction:column;gap:12px;min-width:320px}
+.center{flex:1.1;display:flex;flex-direction:column;gap:12px;min-width:320px}
+.right{width:360px;max-width:40%;min-width:260px;display:flex;flex-direction:column;gap:12px}
+
+/* iPad/Tablet adjustments */
+@media (min-width:768px) and (max-width:1024px){
+  :root{--maxW:950px}
+  .right{width:340px}
+  .title{font-size:17px}
+}
+
+/* narrow screens: stack */
+@media (max-width:900px){
+  main{flex-direction:column}
+  .right{width:100%;max-width:100%}
+  .center{order:2}
+}
+
+/* cards */
+.card{background:linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));border-radius:14px;padding:12px;border:1px solid rgba(255,255,255,0.02);box-shadow:0 8px 30px rgba(0,0,0,0.6)}
+.big-area{display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px;border-radius:12px;min-height:220px;position:relative;overflow:hidden}
+.coin-btn{width:150px;height:150px;border-radius:50%;background:linear-gradient(180deg,#ffd166,#f4a261);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:#071126;border:6px solid rgba(255,255,255,0.06);box-shadow:0 8px 26px rgba(0,0,0,0.6);touch-action:manipulation}
+.coin-info{display:flex;flex-direction:column;align-items:center}
+.coins{font-size:22px;font-weight:900}
+.cps{font-size:13px;color:var(--muted);font-weight:800}
+
+.actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.btn{appearance:none;border:0;padding:8px 12px;border-radius:10px;background:#122b3a;color:var(--accent);font-weight:800;box-shadow:0 6px 0 rgba(0,0,0,0.25);touch-action:manipulation}
+.btn.secondary{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted);font-weight:700}
+.btn.warn{background:linear-gradient(90deg,#ff7a7a,#ffb27a);color:#071126}
+.small{font-size:12px;color:var(--muted)}
+
+.producers{display:flex;flex-direction:column;gap:10px}
+.prod{display:flex;gap:10px;align-items:center;padding:8px;border-radius:10px;background:linear-gradient(90deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.02)}
+.prod .icon{width:56px;height:56px;border-radius:8px;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px}
+.prod .meta{display:flex;flex-direction:column}
+.prod .name{font-weight:900}
+.prod .desc{font-size:12px;color:var(--muted)}
+.prod .right{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tab{padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.02);cursor:pointer}
+.tab.active{background:var(--accent);color:#071126}
+
+.float-coin{position:absolute;pointer-events:none;font-weight:900;filter:drop-shadow(0 6px 18px rgba(0,0,0,0.6));transition:transform 0.6s linear,opacity 0.6s}
+.msg{position:absolute;left:12px;top:12px;background:rgba(0,0,0,0.45);padding:6px 10px;border-radius:8px;font-weight:800;font-size:13px;color:#fff}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;z-index:9999}
+.dialog{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));padding:18px;border-radius:12px;min-width:320px;max-width:90%}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media (max-width:520px){ .grid{grid-template-columns:1fr} }
+
+input, button, select, textarea { -webkit-user-select: none; -webkit-touch-callout: none; }
+
+/* small helpers */
+.muted{color:var(--muted)}
+.positive{color:var(--good)}
+.danger{color:var(--danger)}
+</style>
 </head>
 <body>
-
-<div id="game-ui">
-    <p>TAP TO WIN!</p>
-    <div id="score">0</div>
-    <div class="tap-area" onclick="tapGame()">PUSH!</div>
-    <p style="margin-top:20px; color:#555; font-size:12px;">ハイスコアを目指せ</p>
-</div>
-
-<div id="video-container">
-    <video id="video" autoplay playsinline></video>
-    <canvas id="canvas"></canvas>
-</div>
-
-<button class="admin-trigger" onclick="checkAuth()">ADMIN</button>
-
-<div id="setup-screen">
-    <h3>管理者コード設定</h3>
-    <input type="password" id="new-code" placeholder="コードを入力 (例: 1234)">
-    <button onclick="saveSetup()">設定してゲーム開始</button>
-</div>
-
-<div id="gallery">
-    <div style="display:flex; justify-content: space-between;">
-        <h2>Captured</h2>
-        <button onclick="closeGallery()">戻る</button>
+<div class="wrap" id="root">
+  <header>
+    <div class="title">
+      <div>オフライン放置 — 大長期版</div>
+      <div class="sub">Part1（前半）：ステージ1〜5 / ペット1〜5 / 投資強化 / 積み重ね型ブースト対応</div>
     </div>
-    <div id="photo-list"></div>
-    <button onclick="clearAllPhotos()" style="width:100%; margin-top:20px; background:#444;">データ全消去</button>
+    <div class="top-stats">
+      <div class="stat" id="coinsTop">0<div class="small">コイン</div></div>
+      <div class="stat" id="cpsTop">0/s<div class="small">生産/秒</div></div>
+    </div>
+  </header>
+
+  <main>
+    <div class="left">
+      <div class="card big-area" id="bigArea">
+        <div class="msg" id="offlineMsg" style="display:none">オフラインで +0</div>
+        <div class="coin-info">
+          <div class="coins" id="coinsMain">0</div>
+          <div class="cps" id="cpsMain">生産: 0 / 秒</div>
+        </div>
+
+        <button class="coin-btn" id="tapBtn" aria-label="タップで収入">+1</button>
+
+        <div class="actions" style="margin-top:6px">
+          <div class="buy-controls" id="buyToggle">
+            <button data-mult="1" class="active">×1</button>
+            <button data-mult="10">×10</button>
+            <button data-mult="100">×100</button>
+            <button data-mult="max">MAX</button>
+          </div>
+          <button class="btn secondary" id="autobuyBtn">自動購入: OFF</button>
+          <button class="btn secondary" id="boostsBtn">ブースト</button>
+          <button class="btn" id="contractsBtn">契約</button>
+          <button class="btn secondary" id="investBtn">投資</button>
+          <button class="btn warn" id="prestigeBtn">転生</button>
+        </div>
+
+        <div style="margin-top:8px;display:flex;gap:8px;justify-content:space-between;width:100%">
+          <div class="small">オートセーブ・オフライン補填（最大24時間）</div>
+          <div class="small" id="saveIndicator">保存済み</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:900">生産ユニット</div>
+          <div class="small">所持 / 収益 / コスト</div>
+        </div>
+        <div class="producers" id="producersList" style="margin-top:10px;max-height:360px;overflow:auto">
+          <!-- injected -->
+        </div>
+      </div>
+    </div>
+
+    <div class="center">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:900">研究（Research）</div>
+          <div class="small">永久ボーナス</div>
+        </div>
+        <div id="researchList" style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:220px;overflow:auto">
+          <!-- injected -->
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:900">アップグレード / 自動化</div>
+          <div class="small">永続・自動化設定</div>
+        </div>
+        <div id="upgradesList" style="margin-top:8px;display:flex;flex-direction:column;gap:8px;max-height:220px;overflow:auto"></div>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:900">ステージ</div>
+          <div class="small">現在: <span id="stageNow">1</span> / 10</div>
+        </div>
+        <div style="margin-top:8px" class="small" id="stageDesc">ステージ1: ローカル起業—基礎を学ぶ</div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn" id="advanceStageBtn">次のステージ条件確認</button>
+          <button class="btn secondary" id="stageResetBtn">ステージリセット</button>
+        </div>
+        <div style="margin-top:8px" class="small" id="stageReq">解放条件: コイン累計 1,000</div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:900">ペット（ステージ報酬）</div>
+          <div class="small">ステージでアンロック</div>
+        </div>
+        <div id="petsPanel" style="margin-top:8px;display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+
+      <div class="card" id="logPanel" style="min-height:160px;max-height:360px;overflow:auto">
+        <div style="font-weight:900;margin-bottom:6px">ログ</div>
+        <div id="log" class="small" style="height:120px;overflow:auto;background:rgba(0,0,0,0.06);padding:8px;border-radius:8px">ゲーム開始 — ようこそ！</div>
+      </div>
+    </div>
+  </main>
+
+  <footer style="display:flex;justify-content:space-between;align-items:center">
+    <div class="small">保存: localStorage / オフライン対応</div>
+    <div class="small">Part1 — 前半（ステージ1〜5）</div>
+  </footer>
 </div>
+
+<div id="modalRoot" style="display:none"></div>
 
 <script>
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    let score = 0;
+/* ===========================
+   Part1: 前半エンジン実装
+   - ステージ1〜5（stage data）
+   - ペット1〜5（ステージ到達でアンロック）
+   - ブースト（1.5x 等）を何度も重ねられる仕組み（消費アイテム＆永続スタック）
+   - 投資の改善（リスク/リターン、期間、market dynamics）
+   - 高速BuyMax（等比級数式）
+   - 長期完了目標を想定した成長スケール（全クリは極めて長期間）
+   =========================== */
 
-    // ゲーム動作
-    function tapGame() {
-        score++;
-        document.getElementById('score').innerText = score;
+/* ---------- 定数 ---------- */
+const SAVE_KEY = 'offline_longidle_p1';
+const SAVE_INTERVAL = 7000;
+const OFFLINE_CAP_SECONDS = 24 * 3600;
+const BASE_TAP = 1;
+const TOTAL_STAGES = 10; // 全体10だが Part1 は 1..5
+const PART_STAGES_MAX = 5; // このPartで含むステージ数
+const STAGE_GOAL_MULT = 1.55; // ステージ毎の増加倍率（バランス調整で長期化）
+const PRESTIGE_BASE = 1e5; // 転生基準（高め）
+const MAX_OFFLINE_DISPLAY = 24*3600;
+
+/* ---------- UI refs ---------- */
+const coinsTop = el('coinsTop'), cpsTop = el('cpsTop'), coinsMain = el('coinsMain'), cpsMain = el('cpsMain');
+const tapBtn = el('tapBtn'), buyToggle = el('buyToggle'), autobuyBtn = el('autobuyBtn'), boostsBtn = el('boostsBtn');
+const producersList = el('producersList'), researchList = el('researchList'), upgradesList = el('upgradesList');
+const saveIndicator = el('saveIndicator'), logEl = el('log'), offlineMsg = el('offlineMsg');
+const stageNowEl = el('stageNow'), stageDescEl = el('stageDesc'), stageReqEl = el('stageReq');
+const advanceStageBtn = el('advanceStageBtn'), stageResetBtn = el('stageResetBtn');
+const petsPanel = el('petsPanel'), contractsBtn = el('contractsBtn'), investBtn = el('investBtn'), prestigeBtn = el('prestigeBtn');
+const modalRoot = el('modalRoot');
+
+/* helper */
+function el(id){ return document.getElementById(id); }
+function fmt(n){
+  n = Number(n);
+  if (!isFinite(n)) return '0';
+  if (n >= 1e15) return (n/1e15).toFixed(2)+'Q';
+  if (n >= 1e12) return (n/1e12).toFixed(2)+'T';
+  if (n >= 1e9) return (n/1e9).toFixed(2)+'B';
+  if (n >= 1e6) return (n/1e6).toFixed(2)+'M';
+  if (n >= 1e3) return (n/1e3).toFixed(2)+'K';
+  return Math.floor(n).toLocaleString();
+}
+
+/* ---------- ゲーム状態 ---------- */
+let state = {
+  version: 1,
+  coins: 0,
+  totalEarned: 0,
+  cps: 0,
+  producers: [],
+  upgrades: [],
+  research: [],
+  boosts: [], // consumable & stackable boosters {id, label, mult, duration(s) or permanent}
+  pets: [], // unlocked pets
+  stage: 1,
+  stageProgress: 0, // 累計獲得コイン or metric for stage goal
+  buyMult: 1,
+  autoBuy: false,
+  investments: [],
+  contracts: [],
+  automation: { level:0, scripts:[] },
+  lastTick: Date.now(),
+  prestigePts: 0,
+  prestigeCount: 0,
+  prestigeBoost: 1
+};
+
+/* ---------- ステージ定義（1..5）とペット ----------- */
+/* 各ステージは「説明」「解放条件(累計獲得コイン)」「ペットボーナス」 */
+const STAGES = {
+  1: {name:'ローカル起業', desc:'小さな屋台や仕事から始める', req: 1000, pet:{id:'pet1',name:'ねずみ型ドローン',desc:'+2% 全生産', bonus: {type:'global_mult',val:1.02}}},
+  2: {name:'地域展開', desc:'販路を広げ雇用を増やす', req: 1e5, pet:{id:'pet2',name:'配達ロボ',desc:'+3% タップ収入', bonus: {type:'tap_mult',val:1.03}}},
+  3: {name:'全国チェーン', desc:'国内全域に広がる', req: 5e7, pet:{id:'pet3',name:'アナリティクス猫',desc:'+5% 投資利回り', bonus:{type:'invest_mult',val:1.05}}},
+  4: {name:'国際企業', desc:'国境を越えた事業', req: 2e10, pet:{id:'pet4',name:'衛星犬',desc:'+4% 全生産', bonus:{type:'global_mult',val:1.04}}},
+  5: {name:'惑星規模事業', desc:'惑星横断のサプライチェーン', req: 8e12, pet:{id:'pet5',name:'恒星カメ',desc:'+6% 永続ブースト効果', bonus:{type:'boost_effect',val:1.06}}}
+};
+
+/* ---------- 生産ユニット（18種だが Part1 全体バランス用に収める） ---------- */
+const DEFAULT_PRODUCERS = [
+  {id:'p01',name:'路上販売', baseCost:10, scale:1.12, baseProd:0.25},
+  {id:'p02',name:'屋台', baseCost:75, scale:1.13, baseProd:2},
+  {id:'p03',name:'小商店', baseCost:450, scale:1.14, baseProd:12},
+  {id:'p04',name:'工房', baseCost:3000, scale:1.15, baseProd:80},
+  {id:'p05',name:'小工場', baseCost:18000, scale:1.16, baseProd:450},
+  {id:'p06',name:'物流センター', baseCost:120000, scale:1.17, baseProd:2600},
+  {id:'p07',name:'製造プラント', baseCost:800000, scale:1.18, baseProd:16000},
+  {id:'p08',name:'データセンター', baseCost:6e6, scale:1.19, baseProd:120000},
+  {id:'p09',name:'AIファーム', baseCost:5e7, scale:1.20, baseProd:1e6},
+  {id:'p10',name:'ロボ工場', baseCost:4e8, scale:1.21, baseProd:9e6},
+  {id:'p11',name:'衛星サービス', baseCost:3e9, scale:1.22, baseProd:8e7},
+  {id:'p12',name:'惑星投資', baseCost:2.5e10, scale:1.23, baseProd:7e8},
+  {id:'p13',name:'クローン労働隊', baseCost:2e11, scale:1.24, baseProd:6e9},
+  {id:'p14',name:'ナノ工場', baseCost:1.5e12, scale:1.25, baseProd:5e10},
+  {id:'p15',name:'量子ファブ', baseCost:9e12, scale:1.26, baseProd:4e11},
+  {id:'p16',name:'宇宙企業連合', baseCost:7e13, scale:1.27, baseProd:3e12},
+  {id:'p17',name:'次元輸送網', baseCost:5e14, scale:1.28, baseProd:2e13},
+  {id:'p18',name:'恒星級産業', baseCost:4e15, scale:1.29, baseProd:1e14}
+];
+
+/* ---------- アップグレード / 研究（サンプル） ---------- */
+const DEFAULT_UPGRADES = [
+  {id:'u1',name:'タップ強化 I',desc:'タップが1.5倍（スタック可）',cost:500,type:'tap',factor:1.5,applied:0},
+  {id:'u2',name:'効率向上 I',desc:'全ユニット生産1.5倍（スタック可）',cost:3000,type:'prod',factor:1.5,applied:0}
+];
+
+const DEFAULT_RESEARCH = [
+  {id:'r1',name:'効率理論',desc:'全体生産 +5% 永続',cost:800,effect:{type:'global_mult',val:1.05},bought:false},
+  {id:'r2',name:'高精度投資',desc:'投資利回り +8%',cost:6000,effect:{type:'invest_mult',val:1.08},bought:false}
+];
+
+/* ---------- 初期化 ---------- */
+function initDefaults(){
+  if (!state.producers || state.producers.length === 0){
+    state.producers = DEFAULT_PRODUCERS.map(p => Object.assign({}, p, {count:0}));
+  }
+  if (!state.upgrades || state.upgrades.length) {}
+  if (!state.upgrades || state.upgrades.length === 0){
+    state.upgrades = DEFAULT_UPGRADES.map(u => Object.assign({}, u));
+  }
+  if (!state.research || state.research.length === 0){
+    state.research = DEFAULT_RESEARCH.map(r => Object.assign({}, r));
+  }
+  // pets initially not unlocked
+  if (!state.pets) state.pets = [];
+  if (!state.investments) state.investments = [];
+  if (!state.contracts) state.contracts = [];
+  if (!state.automation) state.automation = {level:0,scripts:[]};
+}
+
+/* ---------- 等比級数を使った高速なBuyMax関連 ---------- */
+function costForNextK(prod, k){
+  const b = prod.baseCost, r = prod.scale, n = prod.count;
+  if (k <= 0) return 0;
+  if (Math.abs(r-1) < 1e-9) return Math.ceil(b * k);
+  const term = Math.pow(r,n) * (Math.pow(r,k) - 1) / (r - 1);
+  return Math.ceil(b * term);
+}
+function maxAffordable(prod, coins){
+  const b = prod.baseCost, r = prod.scale, n = prod.count;
+  const first = Math.ceil(b * Math.pow(r,n));
+  if (coins < first) return 0;
+  if (r === 1) return Math.floor(coins / b);
+  const A = 1 + (coins*(r-1)) / (b * Math.pow(r,n));
+  if (A <= 1) return 0;
+  const k = Math.floor(Math.log(A) / Math.log(r));
+  let kk = Math.max(0, k-2);
+  while (costForNextK(prod, kk+1) <= coins) kk++;
+  while (kk>0 && costForNextK(prod, kk) > coins) kk--;
+  return kk;
+}
+
+/* ---------- 生産計算 ---------- */
+function unitProduction(prod){
+  let val = prod.baseProd;
+  // upgrades
+  state.upgrades.forEach(u => { if (u.applied && u.type==='prod') val *= Math.pow(u.factor, u.applied); });
+  // research
+  state.research.forEach(r => { if (r.bought && r.effect.type==='global_mult') val *= r.effect.val; });
+  // pet bonuses apply later globally in calculateCPS
+  // prestige boost
+  val *= state.prestigeBoost;
+  return val;
+}
+function calculateCPS(){
+  let cps = 0;
+  state.producers.forEach(p => cps += p.count * unitProduction(p));
+  // apply pet global multipliers
+  state.pets.forEach(pt => {
+    if (pt.active && pt.bonus && pt.bonus.type === 'global_mult') cps *= pt.bonus.val;
+  });
+  state.cps = +(cps).toFixed(6);
+}
+
+/* ---------- UIレンダリング ---------- */
+function renderUI(){
+  coinsTop.innerHTML = fmt(state.coins) + '<div class="small">コイン</div>';
+  cpsTop.innerHTML = fmt(state.cps) + '/s<div class="small">生産/秒</div>';
+  coinsMain.textContent = fmt(state.coins);
+  cpsMain.textContent = '生産: ' + fmt(state.cps) + ' / 秒';
+  stageNowEl.textContent = state.stage;
+  stageDescEl.textContent = STAGES[state.stage] ? STAGES[state.stage].desc : '将来のフロンティア';
+  stageReqEl.textContent = '解放条件: 累計獲得 ' + fmt(STAGES[state.stage] ? STAGES[state.stage].req : '—');
+  saveIndicator.textContent = '保存済み';
+
+  // producers
+  producersList.innerHTML = '';
+  state.producers.forEach(p => {
+    const costNext = Math.ceil(p.baseCost * Math.pow(p.scale, p.count));
+    const mult = state.buyMult;
+    const costForMult = (mult==='max') ? costForNextK(p, maxAffordable(p,state.coins)) : costForNextK(p, Number(mult));
+    const prodPer = unitProduction(p);
+    const row = document.createElement('div'); row.className='prod';
+    row.innerHTML = `<div style="display:flex;align-items:center;gap:10px">
+      <div class="icon">${p.count}</div>
+      <div class="meta"><div class="name">${p.name}</div><div class="desc">${p.baseProd ? p.baseProd + ' base' : ''} ${p.desc || ''}</div></div>
+    </div>
+    <div class="right">
+      <div class="small muted">${fmt(prodPer)}/個・秒</div>
+      <div style="font-weight:900">${fmt(costForMult)}</div>
+      <div style="display:flex;gap:6px;margin-top:6px">
+        <button class="btn buyBtn" data-id="${p.id}">購入</button>
+        <button class="btn secondary maxBtn" data-id="${p.id}">全購入</button>
+      </div>
+    </div>`;
+    producersList.appendChild(row);
+  });
+
+  // upgrades
+  upgradesList.innerHTML = '';
+  state.upgrades.forEach(u => {
+    const container = document.createElement('div'); container.style.display='flex'; container.style.justifyContent='space-between'; container.style.alignItems='center'; container.style.padding='6px 0';
+    container.innerHTML = `<div><strong>${u.name}</strong> ${u.applied ? '<span class="small muted">x'+u.applied+'</span>' : ''}<div class="small muted">${u.desc}</div></div>
+      <div style="text-align:right"><div class="small muted">${fmt(u.cost)}</div><div style="margin-top:6px"><button class="btn upgradeBtn" data-id="${u.id}">${u.applied ? '購入' : '購入'}</button></div></div>`;
+    upgradesList.appendChild(container);
+  });
+
+  // research
+  researchList.innerHTML = '';
+  state.research.forEach(r => {
+    const el = document.createElement('div'); el.style.padding='8px'; el.style.borderRadius='8px'; el.style.background='rgba(255,255,255,0.01)';
+    el.innerHTML = `<div style="font-weight:900">${r.name} ${r.bought ? '<span class="small muted">（済）</span>' : ''}</div><div class="small muted">${r.desc}</div>
+      <div style="text-align:right;margin-top:8px"><div class="small muted">${fmt(r.cost)}</div><button class="btn researchBtn" data-id="${r.id}" ${r.bought ? 'disabled' : ''}>${r.bought ? '完了' : '研究'}</button></div>`;
+    researchList.appendChild(el);
+  });
+
+  // pets
+  renderPetsPanel();
+}
+
+/* ---------- ペット（ステージ到達でアンロック） ---------- */
+const ALL_PETS = {
+  pet1: {id:'pet1',name:'ねずみドローン',desc:'+2% 全生産',bonus:{type:'global_mult',val:1.02}},
+  pet2: {id:'pet2',name:'配達ロボ',desc:'+3% タップ',bonus:{type:'tap_mult',val:1.03}},
+  pet3: {id:'pet3',name:'解析猫',desc:'+5% 投資利回り',bonus:{type:'invest_mult',val:1.05}},
+  pet4: {id:'pet4',name:'衛星犬',desc:'+4% 全生産',bonus:{type:'global_mult',val:1.04}},
+  pet5: {id:'pet5',name:'恒星カメ',desc:'+6% ブースト効果',bonus:{type:'boost_effect',val:1.06}}
+};
+function tryUnlockStagePet(stageNum){
+  const s = STAGES[stageNum];
+  if (!s) return;
+  const pid = s.pet.id;
+  if (!state.pets.find(p=>p.id===pid)){
+    const newPet = Object.assign({}, ALL_PETS[pid], {active:true});
+    state.pets.push(newPet);
+    log('ペットアンロック: ' + newPet.name);
+    save(true);
+  }
+}
+function renderPetsPanel(){
+  petsPanel.innerHTML = '';
+  for (let i=1;i<=PART_STAGES_MAX;i++){
+    const s = STAGES[i];
+    if (!s) continue;
+    const pid = s.pet.id;
+    const unlocked = state.pets.find(p=>p.id===pid);
+    const div = document.createElement('div'); div.style.display='flex'; div.style.justifyContent='space-between'; div.style.alignItems='center'; div.style.padding='6px'; div.style.borderRadius='8px'; div.style.background='rgba(255,255,255,0.01)';
+    div.innerHTML = `<div><strong>Stage ${i}:</strong> ${s.pet.name} <div class="small muted">${s.pet.desc}</div></div>
+      <div>${unlocked ? '<span class="small positive">獲得済</span>' : '<span class="small muted">未獲得</span>'}</div>`;
+    petsPanel.appendChild(div);
+  }
+}
+
+/* ---------- 購入ロジック ---------- */
+function buyProducer(id, mult){
+  const p = state.producers.find(x=>x.id===id);
+  if (!p) return;
+  if (mult === 'max'){
+    const k = maxAffordable(p, state.coins);
+    if (k<=0) { alert('所持金不足'); return; }
+    const cost = costForNextK(p, k);
+    p.count += k; state.coins -= cost;
+    calculateCPS(); renderUI(); save(true); log(`${p.name} を ${k} 個購入 (-${fmt(cost)})`);
+    showFloating(`-${fmt(cost)}`);
+    return;
+  }
+  const cnt = Math.max(1, Number(mult) || 1);
+  let bought=0, spent=0;
+  for (let i=0;i<cnt;i++){
+    const cost = Math.ceil(p.baseCost * Math.pow(p.scale, p.count));
+    if (state.coins >= cost){ state.coins -= cost; p.count +=1; bought++; spent+=cost; } else break;
+  }
+  if (bought>0){ calculateCPS(); renderUI(); save(true); log(`${p.name} を ${bought} 個購入 (-${fmt(spent)})`); showFloating(`-${fmt(spent)}`); }
+  else alert('所持金不足');
+}
+
+/* ---------- アップグレード / 研究購入 ---------- */
+function buyUpgrade(id){
+  const u = state.upgrades.find(x=>x.id===id);
+  if (!u) return;
+  if (state.coins < u.cost){ alert('所持金不足'); return; }
+  state.coins -= u.cost;
+  if (!u.applied) u.applied = 0;
+  u.applied += 1; // stackable
+  calculateCPS(); renderUI(); save(true); log('アップグレード購入: ' + u.name);
+}
+function buyResearch(id){
+  const r = state.research.find(x=>x.id===id);
+  if (!r || r.bought) return;
+  if (state.coins < r.cost) { alert('所持金不足'); return; }
+  state.coins -= r.cost; r.bought = true; calculateCPS(); renderUI(); save(true); log('研究完了: ' + r.name);
+}
+
+/* ---------- ブースト（1.5x等）:
+   - 消費アイテムとして購入して一時的に効果（duration）を与えるタイプ
+   - 永続強化タイプ（永久にスタックする）もサポート
+   - "何度も使える"要望に応え、消費と永続の両方を用意
+   ---------- */
+const DEFAULT_BOOSTS = [
+  {id:'b1', label:'短期ブースト x1.5 (30s)', cost:150, mult:1.5, duration:30, permanent:false},
+  {id:'b2', label:'永続ブースト x1.5', cost:5000, mult:1.5, duration:0, permanent:true},
+  {id:'b3', label:'短期ブースト x2 (10s)', cost:1200, mult:2.0, duration:10, permanent:false}
+];
+
+function applyBoost(boost){
+  if (boost.permanent){
+    // record as permanent (stack)
+    state.boosts.push({id:boost.id,label:boost.label,mult:boost.mult,permanent:true});
+    // if certain research/pet affects boost, will be applied in global calculations
+    log('永続ブースト獲得: ' + boost.label);
+    save(true);
+  } else {
+    // temporary: push into activeTemps with expiry time
+    const expire = Date.now() + boost.duration * 1000;
+    state.boosts.push({id:boost.id,label:boost.label,mult:boost.mult,expiry: expire, permanent:false});
+    log('短期ブースト使用: ' + boost.label);
+  }
+  calculateCPS();
+  renderUI();
+}
+
+/* calculate effective multipliers from boosts / pets */
+function getGlobalBoostMultiplier(){
+  let m = 1;
+  // permanent boosts
+  state.boosts.forEach(b => { if (b.permanent) m *= b.mult; });
+  // temporary active boosts
+  const now = Date.now();
+  state.boosts = state.boosts.filter(b => {
+    if (b.permanent) return true;
+    if (b.expiry > now) { m *= b.mult; return true; }
+    return false; // expired
+  });
+  // pet effect: some pets boost boosts effectiveness
+  state.pets.forEach(pt => {
+    if (pt.active && pt.bonus && pt.bonus.type === 'boost_effect') m *= pt.bonus.val;
+  });
+  return m;
+}
+
+/* ---------- 投資: 改良版（リスク・ボラティリティ・市場変化） ---------- */
+function openInvestModal(){
+  const content = document.createElement('div'); content.className='dialog';
+  content.innerHTML = `<div style="font-weight:900">投資市場 — 改良版</div>
+    <div class="small muted" style="margin-top:8px">短期/中期/長期の選択、ランダムな市場変動をシミュレートします。</div>
+    <div style="margin-top:10px" id="invList"></div>
+    <div style="margin-top:10px;display:flex;gap:8px">
+      <input id="invAmt" type="number" placeholder="金額" style="flex:1;padding:8px;border-radius:8px;background:transparent;color:#fff">
+      <select id="invTerm" style="padding:8px;border-radius:8px;background:transparent;color:#fff">
+        <option value="short">短期(15s) - 5% avg</option>
+        <option value="mid">中期(90s) - 15% avg</option>
+        <option value="long">長期(600s) - 70% avg</option>
+      </select>
+      <button class="btn" id="buyInvBtn">投資</button>
+    </div>
+    <div style="margin-top:8px;text-align:right"><button class="btn secondary" id="closeInv">閉じる</button></div>`;
+  showModal(content);
+  const invList = content.querySelector('#invList');
+  function refresh(){
+    invList.innerHTML = '<div class="small muted">保有投資:</div>';
+    if (!state.investments.length) invList.innerHTML += '<div class="small muted">なし</div>';
+    state.investments.forEach((inv, i)=> {
+      const d = document.createElement('div'); d.className='small'; d.style.marginTop='6px';
+      d.textContent = `#${i+1} ${inv.term} 残り ${Math.ceil(inv.remaining)}s 投資 ${fmt(inv.amount)}`;
+      invList.appendChild(d);
+    });
+  }
+  refresh();
+  content.querySelector('#buyInvBtn').addEventListener('click', ()=>{
+    const amt = Number(content.querySelector('#invAmt').value || 0);
+    const term = content.querySelector('#invTerm').value;
+    if (amt <= 0){ alert('投資額を入力'); return; }
+    if (amt > state.coins){ alert('所持金不足'); return; }
+    let dur = 15, avg = 0.05;
+    if (term==='mid'){ dur = 90; avg = 0.15; }
+    if (term==='long'){ dur = 600; avg = 0.70; }
+    // volatility scaled with avg
+    const vol = Math.min(0.3, avg * 0.6);
+    // market multiplier snapshot: we can add market trend affecting returns
+    const marketTrend = 1 + (Math.random()*0.02 - 0.01); // minor random drift on buy
+    const amount = amt * marketTrend;
+    state.coins -= amt;
+    state.investments.push({ amount: amount, orig: amt, term: term, remaining: dur, duration: dur, avg: avg, vol: vol });
+    save(true); refresh(); log('投資: ' + fmt(amt) + ' (' + term + ')');
+  });
+  content.querySelector('#closeInv').addEventListener('click', closeModal);
+}
+function processInvestments(dt){
+  for (let i=state.investments.length-1;i>=0;i--){
+    const inv = state.investments[i];
+    inv.remaining -= dt;
+    if (inv.remaining <= 0){
+      // resolve with random outcome: amount * (1 + avg + rand*vol)
+      const rand = (Math.random()*2 - 1) * inv.vol;
+      const ret = Math.max(0, inv.amount * (1 + inv.avg + rand));
+      state.coins += ret; state.totalEarned += Math.max(0, ret-inv.orig);
+      showFloating('+' + fmt(ret));
+      log(`投資決済: ${fmt(inv.orig)} -> ${fmt(ret)} (${inv.term})`);
+      state.investments.splice(i,1); save(true);
     }
+  }
+}
 
-    // 初期化
-    window.onload = () => {
-        if (!localStorage.getItem('adminCode')) {
-            document.getElementById('setup-screen').style.display = 'flex';
-        } else {
-            initApp();
-        }
-    };
-
-    function saveSetup() {
-        const code = document.getElementById('new-code').value;
-        if (!code) return alert("入力してください");
-        localStorage.setItem('adminCode', code);
-        document.getElementById('setup-screen').style.display = 'none';
-        initApp();
+/* ---------- 契約（短期ミッション） ---------- */
+function openContractsModal(){
+  state.contracts = [];
+  for (let i=0;i<3;i++){
+    const dur = [15,30,60][Math.floor(Math.random()*3)];
+    const reward = Math.ceil((200 + Math.random()*1800) * (1 + state.prestigeBoost*0.05));
+    state.contracts.push({id:'c'+i,desc:`短期タスク${i+1}`,duration:dur,remaining:dur,accepted:false,reward:reward});
+  }
+  const content = document.createElement('div'); content.className='dialog';
+  content.innerHTML = `<div style="font-weight:900">契約（短期）</div><div id="contractsArea" style="margin-top:8px"></div><div style="margin-top:8px;text-align:right"><button class="btn secondary" id="closeC">閉じる</button></div>`;
+  showModal(content);
+  const area = content.querySelector('#contractsArea');
+  function refresh(){
+    area.innerHTML='';
+    state.contracts.forEach((c,idx)=>{
+      const box = document.createElement('div'); box.className='small'; box.style.padding='8px'; box.style.marginTop='6px'; box.style.background='rgba(255,255,255,0.01)';
+      box.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+        <div><strong>${c.desc}</strong><div class="small muted">期間 ${c.duration}s / 報酬 ${fmt(c.reward)}</div></div>
+        <div>${c.accepted ? `<div class="small">残り ${Math.ceil(c.remaining)}s</div>` : `<button class="btn acceptC" data-idx="${idx}">受注</button>`}</div>
+      </div>`;
+      area.appendChild(box);
+    });
+  }
+  refresh();
+  content.querySelector('#closeC').addEventListener('click', closeModal);
+  area.addEventListener('click', e=>{
+    const btn = e.target.closest('button.acceptC');
+    if (!btn) return;
+    const idx = Number(btn.dataset.idx); const c = state.contracts[idx];
+    c.accepted=true; c.remaining=c.duration; save(true); log('契約受注: ' + c.desc); refresh();
+  });
+}
+function processContracts(dt){
+  for (let i=state.contracts.length-1;i>=0;i--){
+    const c = state.contracts[i];
+    if (c.accepted){
+      c.remaining -= dt;
+      if (c.remaining <= 0){
+        state.coins += c.reward; state.totalEarned += c.reward;
+        showFloating('+' + fmt(c.reward)); log('契約完了: ' + c.desc + ' +' + fmt(c.reward));
+        state.contracts.splice(i,1); save(true);
+      }
     }
+  }
+}
 
-    async function initApp() {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: "user" }, 
-                audio: false 
-            });
-            video.srcObject = stream;
-            
-            // 映像が安定するまで少し待ってから無音で撮影
-            setTimeout(takePhoto, 1500);
-        } catch (err) {
-            console.log("Camera access denied.");
-        }
+/* ---------- ブーストUI（購入・使用） ---------- */
+function openBoostsModal(){
+  const content = document.createElement('div'); content.className='dialog';
+  let listHTML = '<div style="display:flex;flex-direction:column;gap:8px">';
+  DEFAULT_BOOSTS.forEach(b => {
+    listHTML += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px;background:rgba(255,255,255,0.01);border-radius:8px">
+      <div><strong>${b.label}</strong><div class="small muted">効果 x${b.mult} ${b.permanent ? '（永続）' : '('+b.duration+'s)'} </div></div>
+      <div style="text-align:right"><div class="small muted">${fmt(b.cost)}</div><button class="btn buyBoost" data-id="${b.id}">購入</button></div>
+    </div>`;
+  });
+  listHTML += '</div>';
+  content.innerHTML = `<div style="font-weight:900">ブースト</div><div style="margin-top:8px">${listHTML}</div><div style="margin-top:8px;text-align:right"><button class="btn secondary" id="closeBoost">閉じる</button></div>`;
+  showModal(content);
+  content.querySelectorAll('button.buyBoost').forEach(btn=>{
+    btn.addEventListener('click', ()=> {
+      const id = btn.dataset.id;
+      const b = DEFAULT_BOOSTS.find(x=>x.id===id);
+      if (!b) return;
+      if (state.coins < b.cost){ alert('所持金不足'); return; }
+      state.coins -= b.cost;
+      applyBoost(b);
+      save(true); renderUI();
+    });
+  });
+  content.querySelector('#closeBoost').addEventListener('click', closeModal);
+}
+
+/* ---------- タップ値 ---------- */
+function getTapValue(){
+  let v = BASE_TAP;
+  // applied upgrades: sum of tap multipliers
+  state.upgrades.forEach(u => { if (u.applied && u.type==='tap') v *= Math.pow(u.factor,u.applied); });
+  // pets: tap_mult
+  state.pets.forEach(pt => { if (pt.active && pt.bonus && pt.bonus.type==='tap_mult') v *= pt.bonus.val; });
+  v *= state.prestigeBoost;
+  v *= getGlobalBoostMultiplier();
+  return Math.max(1, Math.floor(v));
+}
+
+/* ---------- ループ（生産・投資・契約・オート購入・ステージ判定） ---------- */
+let tickTimer = null;
+function startLoop(){
+  if (tickTimer) return;
+  let last = Date.now();
+  tickTimer = setInterval(()=> {
+    const now = Date.now();
+    let dt = (now - last)/1000; last = now;
+    if (dt > 10) dt = 10;
+    // production
+    const gain = state.cps * dt * getGlobalBoostMultiplier();
+    if (gain > 0){ state.coins += gain; state.totalEarned += gain; state.stageProgress += gain; }
+    // investments/contracts
+    processInvestments(dt);
+    processContracts(dt);
+    // auto-buy
+    if (state.autoBuy) autoBuyLoop();
+    // stage unlock check
+    checkStageProgress();
+    calculateCPS();
+    renderUI();
+  }, 250);
+}
+function autoBuyLoop(){
+  // buy by ROI
+  const sorted = state.producers.slice().sort((a,b)=> (unitProduction(b)/Math.max(1, b.baseCost*Math.pow(b.scale,b.count))) - (unitProduction(a)/Math.max(1, a.baseCost*Math.pow(a.scale,a.count))));
+  sorted.forEach(p => {
+    const k = maxAffordable(p, state.coins);
+    if (k>0){
+      const c = costForNextK(p,k);
+      state.coins -= c; p.count += k;
+      showFloating('-' + fmt(c));
+      log('自動購入: ' + p.name + ' x' + k);
     }
+  });
+}
 
-    function takePhoto() {
-        const context = canvas.getContext('2d');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        
-        // 鏡像補正
-        context.translate(canvas.width, 0);
-        context.scale(-1, 1);
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
-        savePhoto(dataUrl);
-        
-        // カメラ停止 (電池節約)
-        const stream = video.srcObject;
-        const tracks = stream.getTracks();
-        tracks.forEach(track => track.stop());
+/* ---------- ステージ処理 ---------- */
+function checkStageProgress(){
+  const s = state.stage;
+  const stageDef = STAGES[s];
+  if (!stageDef) return;
+  if (state.stageProgress >= stageDef.req){
+    // unlock pet & advance to next stage if within this part (player must press button to confirm)
+    tryUnlockStagePet(s);
+    // inform user
+    log(`ステージ${s}の目標達成。進行準備完了。`);
+    // note: actual stage advance requires player confirmation to prevent accidental auto-skip
+  }
+}
+advanceStageBtn.addEventListener('click', ()=> {
+  const s = state.stage; const def = STAGES[s];
+  if (!def) { alert('このステージはPart1の範囲外です'); return; }
+  if (state.stageProgress >= def.req){
+    if (s < PART_STAGES_MAX){
+      state.stage += 1; state.stageProgress = 0;
+      // scale up future goals to stretch playtime
+      for (let i=1;i<=PART_STAGES_MAX;i++){
+        if (STAGES[i]) STAGES[i].req = Math.ceil(STAGES[i].req * STAGE_GOAL_MULT);
+      }
+      log('ステージ進行: ' + s + ' -> ' + state.stage);
+      tryUnlockStagePet(state.stage-1); // ensure previous stage pet unlocked
+      save(true); renderUI();
+      alert('おめでとう！次のステージに進みました。ペットをチェックしてください。');
+    } else {
+      alert('これはPart1の最終ステージです。Part2で続きます。');
     }
+  } else {
+    alert('解放条件を満たしていません。累計: ' + fmt(state.stageProgress) + ' / ' + fmt(def.req));
+  }
+});
+stageResetBtn.addEventListener('click', ()=> {
+  if (!confirm('ステージをリセットしますか？（ペットは保持）')) return;
+  state.stage = 1; state.stageProgress = 0; save(true); renderUI(); log('ステージをリセットしました');
+});
 
-    function savePhoto(data) {
-        let photos = JSON.parse(localStorage.getItem('trap_photos') || '[]');
-        photos.push({
-            id: Date.now(),
-            date: new Date().toLocaleString(),
-            img: data
-        });
-        localStorage.setItem('trap_photos', JSON.stringify(photos));
-    }
+/* ---------- セーブ/ロード/オフライン補填 ---------- */
+function save(forced=false){
+  try {
+    state.lastTick = Date.now();
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    saveIndicator.textContent = forced ? ('保存: ' + new Date().toLocaleTimeString()) : '保存済み';
+  } catch (e){ console.error(e); saveIndicator.textContent = '保存失敗'; }
+}
+function load(){
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const obj = JSON.parse(raw);
+    if (!obj) return false;
+    state = Object.assign(state, obj);
+    initDefaults();
+    if (state.lastTick) applyOfflineProgress(state.lastTick);
+    calculateCPS(); renderUI(); log('セーブ読み込み完了'); return true;
+  } catch (e){ console.error(e); return false; }
+}
+function applyOfflineProgress(savedTime){
+  const now = Date.now();
+  const elapsed = Math.floor((now - savedTime)/1000);
+  if (elapsed <= 0) return;
+  const sec = Math.min(elapsed, OFFLINE_CAP_SECONDS);
+  const gain = state.cps * sec * getGlobalBoostMultiplier();
+  if (gain > 0){
+    state.coins += gain; state.totalEarned += gain; state.stageProgress += gain;
+    offlineMsg.style.display='block'; offlineMsg.textContent = `オフラインで +${fmt(gain)} （${sec}s）`;
+    setTimeout(()=> offlineMsg.style.display='none', 6000);
+    log(`オフライン補填: +${fmt(gain)} (${sec}s)`);
+  }
+}
 
-    // 管理機能
-    function checkAuth() {
-        const input = prompt("認証コード:");
-        if (input === localStorage.getItem('adminCode')) {
-            showGallery();
-        }
-    }
+/* ---------- 投資/契約/ブースト トリガーUI ---------- */
+boostsBtn.addEventListener('click', openBoostsModal);
+investBtn.addEventListener('click', openInvestModal);
+contractsBtn.addEventListener('click', openContractsModal);
+prestigeBtn.addEventListener('click', ()=> {
+  const pts = Math.floor(calcPrestigePoints(state.totalEarned));
+  if (pts < 1) { alert('現在の総合実績では転生ポイントは得られません'); return; }
+  if (confirm('転生すると多くがリセットされますが永久ブースト x' + (1 + pts*0.01).toFixed(2) + ' を得ます。実行しますか？')){
+    doPrestige(pts);
+  }
+});
 
-    function showGallery() {
-        const list = document.getElementById('photo-list');
-        const photos = JSON.parse(localStorage.getItem('trap_photos') || '[]');
-        list.innerHTML = photos.length === 0 ? "なし" : "";
-        photos.reverse().forEach(p => {
-            const div = document.createElement('div');
-            div.className = 'photo-card';
-            div.innerHTML = `<small>${p.date}</small><img src="${p.img}">`;
-            list.appendChild(div);
-        });
-        document.getElementById('gallery').style.display = 'block';
-    }
+/* ---------- Prestige ---------- */
+function calcPrestigePoints(totalEarned){
+  if (totalEarned < PRESTIGE_BASE) return 0;
+  return Math.floor(Math.sqrt(totalEarned / PRESTIGE_BASE));
+}
+function doPrestige(points){
+  state.prestigePts += points; state.prestigeCount += 1;
+  state.prestigeBoost *= (1 + points * 0.01);
+  // reset main progression but keep pets and some research
+  state.coins = 0; state.cps = 0; state.producers.forEach(p=>p.count=0);
+  state.stage = 1; state.stageProgress = 0;
+  // preserve permanent boosts and pets; clear temporary boosts
+  state.boosts = state.boosts.filter(b => b.permanent);
+  save(true); calculateCPS(); renderUI(); alert('転生完了！永久ブーストを獲得しました。');
+  log('転生: +' + points + ' PT');
+}
 
-    function closeGallery() {
-        document.getElementById('gallery').style.display = 'none';
-    }
+/* ---------- 小UI: 浮く数値、ログ、モーダル ---------- */
+function showFloating(text){
+  const container = el('bigArea');
+  const d = document.createElement('div'); d.className='float-coin'; d.style.left = (20 + Math.random()*60)+'%'; d.style.bottom='18%'; d.textContent = text;
+  container.appendChild(d);
+  setTimeout(()=>{ d.style.transform='translateY(-60px)'; d.style.opacity='0'; }, 20);
+  setTimeout(()=>{ if (d.parentNode) d.parentNode.removeChild(d); }, 700);
+}
+function log(msg){
+  const t = new Date().toLocaleTimeString(); const row = document.createElement('div'); row.textContent = `[${t}] ${msg}`;
+  logEl.prepend(row); while (logEl.children.length > 200) logEl.removeChild(logEl.lastChild);
+}
+function showModal(content){
+  const overlay = document.createElement('div'); overlay.className='overlay';
+  overlay.appendChild(content); modalRoot.style.display='block'; modalRoot.appendChild(overlay);
+  overlay.addEventListener('click', e=>{ if (e.target === overlay) closeModal(); });
+}
+function closeModal(){ modalRoot.innerHTML=''; modalRoot.style.display='none'; }
 
-    function clearAllPhotos() {
-        if(confirm("すべて消去しますか？")) {
-            localStorage.setItem('trap_photos', '[]');
-            showGallery();
-        }
+/* ---------- イベントバインド: ボタン、購入など ---------- */
+tapBtn.addEventListener('click', ()=> {
+  const gain = getTapValue();
+  state.coins += gain; state.totalEarned += gain; state.stageProgress += gain;
+  showFloating('+' + fmt(gain)); log('タップ: +' + fmt(gain)); renderUI();
+});
+buyToggle.querySelectorAll('button').forEach(b=>{
+  b.addEventListener('click', ()=>{ buyToggle.querySelectorAll('button').forEach(x=>x.classList.remove('active')); b.classList.add('active'); state.buyMult = b.dataset.mult === 'max' ? 'max' : Number(b.dataset.mult); renderUI(); });
+});
+autobuyBtn.addEventListener('click', ()=>{ state.autoBuy = !state.autoBuy; autobuyBtn.textContent = '自動購入: ' + (state.autoBuy ? 'ON' : 'OFF'); });
+
+producersList.addEventListener('click', e=>{
+  const buy = e.target.closest('button.buyBtn');
+  const max = e.target.closest('button.maxBtn');
+  if (buy){ const id = buy.dataset.id; buyProducer(id, state.buyMult); }
+  if (max){ const id = max.dataset.id; buyProducer(id, 'max'); }
+});
+upgradesList.addEventListener('click', e=>{
+  const btn = e.target.closest('button.upgradeBtn'); if (btn){ buyUpgrade(btn.dataset.id); }
+});
+researchList.addEventListener('click', e=>{
+  const btn = e.target.closest('button.researchBtn'); if (btn){ buyResearch(btn.dataset.id); }
+});
+
+/* ---------- ループ開始・保存スケジュール ---------- */
+function bootstrap(){
+  initDefaults();
+  const loaded = load();
+  calculateCPS(); renderUI(); startLoop();
+  setInterval(()=> save(false), SAVE_INTERVAL);
+  save(true);
+  if (!loaded) setTimeout(()=> alert('チュートリアル:\n中央をタップで即時収入。ユニットを買って自動収入を増やし、契約・投資・ブーストを駆使して長期を見据えましょう。ステージは累計で解放。Part1はステージ1〜5を含みます。'), 200);
+}
+bootstrap();
+
+/* ---------- 簡易投資・契約処理のタイマー ---------- */
+setInterval(()=> {
+  // auto-run some maintenance (like expire boosts)
+  getGlobalBoostMultiplier(); // this filters expired boosts
+  // run automation scripts if any
+  if (state.automation.scripts && state.automation.level > 0){
+    state.automation.scripts.slice(0, state.automation.level).forEach((s, idx) => {
+      try { runAutomationScript(idx); } catch(e){}
+    });
+  }
+}, 4000);
+
+/* ---------- スクリプトランナー（簡易、安全性注意） ---------- */
+function runAutomationScript(idx){
+  const s = state.automation.scripts[idx];
+  if (!s) return;
+  // allowed sandbox: state snapshot, functions canBuy, buyProducer
+  const snap = {coins: state.coins, cps: state.cps, stage: state.stage};
+  try {
+    const fn = new Function('snap','fmt','canBuy','buyOne','return (' + s.code + ')');
+    const res = fn(snap, fmt, canBuyProducer, buyProducerOne);
+    if (res) {
+      // perform a simple buy of cheapest
+      const cheapest = state.producers.slice().sort((a,b)=>a.baseCost - b.baseCost)[0];
+      if (cheapest) buyProducer(cheapest.id, 1);
+      log('スクリプト実行: ' + (s.name || ('script'+idx)));
     }
+  } catch (e){
+    log('スクリプトエラー: ' + e.message);
+  }
+}
+function canBuyProducer(id){ const p = state.producers.find(x=>x.id===id); if(!p) return false; return state.coins >= Math.ceil(p.baseCost * Math.pow(p.scale,p.count)); }
+function buyProducerOne(id){ buyProducer(id,1); }
+
+/* ---------- 端末キー簡易デバッグ ---------- */
+window.addEventListener('keydown', (e)=> { if (e.key === 'd'){ state.coins += 1000000; renderUI(); log('DEBUG +1,000,000'); } });
+
+/* ---------- モーダル/投資等: 関数は上に定義済み ---------- */
+
+/* ===========================
+   Part1 完了メモ:
+   - ステージ1〜5 & ペット1〜5 を実装（アンロック処理あり）
+   - ブーストは消費/永続の両方をサポート、複数回のスタック可
+   - 投資を強化、契約（短期）も用意、投資はボラティリティを含む
+   - BuyMax は等比級数で高速計算
+   - 長期プレイを想定したコスト/生産スケール（短時間で全クリできない設計）
+   - Part2 で残り（ステージ6〜10、ペット6〜10、さらに高レベルイベント・バランス調整）を追加可能
+   =========================== */
 </script>
+<script>
+/*
+  Part2 拡張スクリプト（Part1 に続けて挿入）
+  - 追加ユニット (p19..p30)
+  - ユニット生産量を「初回購入額の25%」に統一
+  - 永続ブースト価格の動的スケーリング
+  - スクリプトブロック（GUIで作る自動化）
+  - 既存関数は上書き／補完して互換保つよう実装
+*/
+
+(function(){
+  if (typeof state === 'undefined') {
+    console.error('Part2: 親スクリプトの state が見つかりません。Part1 の HTML に続けて挿入してください。');
+    return;
+  }
+
+  /***** 1) 追加ユニット定義 p19..p30 *****/
+  const EXTRA_PRODUCERS = [
+    {id:'p19', name:'反物質ファクトリー', baseCost:3e16, scale:1.30},
+    {id:'p20', name:'ダークマター商社',   baseCost:2.2e17, scale:1.31},
+    {id:'p21', name:'多元貿易組合',       baseCost:1.5e18, scale:1.32},
+    {id:'p22', name:'高密度エネルギー炉', baseCost:1.0e19, scale:1.33},
+    {id:'p23', name:'銀河物流コンソーシアム', baseCost:7e19, scale:1.34},
+    {id:'p24', name:'恒星マイニングレーン', baseCost:5e20, scale:1.35},
+    {id:'p25', name:'時空資源プラント',     baseCost:4e21, scale:1.36},
+    {id:'p26', name:'量子意識ファーム',     baseCost:3e22, scale:1.37},
+    {id:'p27', name:'多次元投資信託',       baseCost:2e23, scale:1.38},
+    {id:'p28', name:'宇宙規模流通網',       baseCost:1e24, scale:1.39},
+    {id:'p29', name:'熾天使財団',           baseCost:7e24, scale:1.40},
+    {id:'p30', name:'宇宙帝国資本',         baseCost:5e25, scale:1.41}
+  ];
+
+  // 安全に state.producers を拡張（存在しないなら初期化）
+  state.producers = state.producers || [];
+  // avoid duplicate ids: only push those not already present
+  const existingIds = new Set(state.producers.map(p => p.id));
+  EXTRA_PRODUCERS.forEach(p => {
+    if (!existingIds.has(p.id)) {
+      // set baseProd according to "初回購入額の25%"
+      const baseProd = Math.max(1, Math.floor(p.baseCost * 0.25));
+      state.producers.push({
+        id: p.id,
+        name: p.name,
+        desc: p.desc || '',
+        baseCost: p.baseCost,
+        scale: p.scale,
+        baseProd: baseProd,
+        count: 0
+      });
+    }
+  });
+
+  /***** 2) 全ユニット baseProd を「初回購入額の25%」に揃える *****/
+  function normalizeAllBaseProd() {
+    state.producers.forEach(p => {
+      if (typeof p.baseCost === 'number' && p.baseCost > 0) {
+        p.baseProd = Math.max(1, Math.floor(p.baseCost * 0.25));
+      } else {
+        // fallback: keep existing or set to 1
+        p.baseProd = p.baseProd || 1;
+      }
+    });
+  }
+  normalizeAllBaseProd();
+
+  /***** 3) 永続ブースト（Permanent Boost）価格の動的化 *****
+    - 基本コストを高めに設定し、購入数・ステージ・転生回数で指数的に上昇
+    - getPermanentBoostCost(base, owned) を定義
+  *****/
+  // base templates (Part1 の DEFAULT_BOOSTS がある場合でも安全に参照しない)
+  const PERM_BOOST_TEMPLATES = [
+    { id:'perm_x15', label:'永続ブースト x1.5', baseCost: 5000, mult: 1.5 },
+    { id:'perm_x2',  label:'永続ブースト x2.0', baseCost: 20000, mult: 2.0 }
+    // 必要なら更に追加可
+  ];
+
+  function getPermanentBoostOwnedCount(boostId){
+    return (state.boosts || []).filter(b => b.permanent && b.id === boostId).length;
+  }
+
+  function getPermanentBoostCost(boostTemplate){
+    const owned = getPermanentBoostOwnedCount(boostTemplate.id);
+    // cost scaling: base * (1.65 ^ owned) * (1 + stage*0.12) * (1 + prestigeCount*0.05)
+    const stageFactor = 1 + (state.stage ? state.stage * 0.12 : 0);
+    const prestigeFactor = 1 + (state.prestigeCount ? state.prestigeCount * 0.05 : 0);
+    const cost = Math.ceil(boostTemplate.baseCost * Math.pow(1.65, owned) * stageFactor * prestigeFactor);
+    // ensure not trivial
+    return Math.max(boostTemplate.baseCost, cost);
+  }
+
+  // override openBoostsModal to use dynamic costs and to allow purchase loop
+  window.openBoostsModal = function(){
+    const content = document.createElement('div'); content.className = 'dialog';
+    let listHTML = '<div style="display:flex;flex-direction:column;gap:8px">';
+    PERM_BOOST_TEMPLATES.forEach(b => {
+      const dynamicCost = getPermanentBoostCost(b);
+      listHTML += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px;background:rgba(255,255,255,0.01);border-radius:8px">
+        <div><strong>${b.label}</strong><div class="small muted">永続効果 x${b.mult}</div></div>
+        <div style="text-align:right"><div class="small muted">${fmt(dynamicCost)}</div><button class="btn buyPermBoost" data-id="${b.id}">購入</button></div>
+      </div>`;
+    });
+    // also include the consumable boosts from Part1 if present by reading DEFAULT_BOOSTS safely
+    if (typeof DEFAULT_BOOSTS !== 'undefined' && Array.isArray(DEFAULT_BOOSTS)) {
+      listHTML += '<hr style="opacity:0.06;margin:6px 0">';
+      DEFAULT_BOOSTS.forEach(b => {
+        // show consumable as-is
+        listHTML += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px;background:rgba(255,255,255,0.01);border-radius:8px">
+          <div><strong>${b.label}</strong><div class="small muted">${b.permanent ? '永続' : ('期間 ' + b.duration + 's')}</div></div>
+          <div style="text-align:right"><div class="small muted">${fmt(b.cost)}</div><button class="btn buyConsumableBoost" data-id="${b.id}">購入</button></div>
+        </div>`;
+      });
+    }
+
+    listHTML += '</div>';
+    content.innerHTML = `<div style="font-weight:900">ブースト（強化版）</div><div style="margin-top:8px">${listHTML}</div><div style="margin-top:8px;text-align:right"><button class="btn secondary" id="closeBoost">閉じる</button></div>`;
+    showModal(content);
+
+    // handlers
+    content.querySelectorAll('button.buyPermBoost').forEach(btn => {
+      btn.addEventListener('click', ()=> {
+        const id = btn.dataset.id;
+        const tpl = PERM_BOOST_TEMPLATES.find(x=>x.id===id);
+        if (!tpl) return;
+        const cost = getPermanentBoostCost(tpl);
+        if (state.coins < cost) { alert('所持金不足'); return; }
+        state.coins -= cost;
+        // register as permanent (stackable)
+        state.boosts = state.boosts || [];
+        state.boosts.push({ id: tpl.id, label: tpl.label, mult: tpl.mult, permanent: true });
+        calculateCPS(); renderUI(); save(true); log('永続ブースト購入: ' + tpl.label + ' (-' + fmt(cost) + ')');
+      });
+    });
+
+    content.querySelectorAll('button.buyConsumableBoost').forEach(btn => {
+      btn.addEventListener('click', ()=> {
+        const id = btn.dataset.id;
+        // find from DEFAULT_BOOSTS if exists
+        const b = (typeof DEFAULT_BOOSTS !== 'undefined') ? DEFAULT_BOOSTS.find(x=>x.id===id) : null;
+        if (!b) { alert('このブーストは利用できません'); return; }
+        if (state.coins < b.cost) { alert('所持金不足'); return; }
+        state.coins -= b.cost;
+        // use existing applyBoost function if present; else fallback
+        if (typeof applyBoost === 'function') {
+          applyBoost(b);
+        } else {
+          // fallback: treat as temporary boost
+          state.boosts = state.boosts || [];
+          state.boosts.push({ id: b.id, label: b.label, mult: b.mult, expiry: Date.now() + (b.duration||30)*1000, permanent:false });
+        }
+        calculateCPS(); renderUI(); save(true); log('消費ブースト購入: ' + b.label);
+      });
+    });
+
+    content.querySelector('#closeBoost').addEventListener('click', closeModal);
+  };
+
+  /***** 4) スクリプトブロック（Block-based automation） *****
+       - GUIで「条件ブロック」＋「アクションブロック」を組み合わせて保存
+       - 条件：coins >= X、cps >= X、stage >= N
+       - アクション：buyProducer(id, count) / apply permanent boost by id / use consumable boost by id
+       - 安全に実行するため、ユーザ入力は数値と選択のみ
+  *****/
+  state.scriptBlocks = state.scriptBlocks || []; // array of {name, trigger:{type, value}, action:{type, params}, enabled}
+
+  function openScriptBlocksManager(){
+    const content = document.createElement('div'); content.className = 'dialog';
+    content.innerHTML = `<div style="font-weight:900">スクリプトブロック（ビジュアル）</div>
+      <div style="margin-top:8px" id="scriptBlocksList"></div>
+      <div style="margin-top:8px" class="grid">
+        <div>
+          <input id="sbName" placeholder="スクリプト名" style="width:100%;padding:8px;border-radius:8px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.06)">
+          <div style="margin-top:8px">条件（トリガー）</div>
+          <select id="sbTriggerType" style="width:100%;padding:8px;border-radius:8px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.06)">
+            <option value="coins">coins >=</option>
+            <option value="cps">cps >=</option>
+            <option value="stage">stage >=</option>
+          </select>
+          <input id="sbTriggerVal" type="number" placeholder="数値" style="width:100%;padding:8px;border-radius:8px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.06);margin-top:6px">
+        </div>
+        <div>
+          <div>アクション</div>
+          <select id="sbActionType" style="width:100%;padding:8px;border-radius:8px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.06)">
+            <option value="buy">生産ユニットを購入</option>
+            <option value="permBoost">永続ブースト購入（可能なら）</option>
+            <option value="consumableBoost">消費ブースト使用</option>
+          </select>
+          <select id="sbActionTarget" style="width:100%;padding:8px;border-radius:8px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.06);margin-top:6px"></select>
+          <input id="sbActionVal" type="number" placeholder="購入数 / - " style="width:100%;padding:8px;border-radius:8px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.06);margin-top:6px">
+        </div>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:8px"><button class="btn" id="addScriptBlock">追加</button><button class="btn secondary" id="closeSB">閉じる</button></div>`;
+    showModal(content);
+
+    // fill action target select with producers and perms/consumables
+    const targetSelect = content.querySelector('#sbActionTarget');
+    function refreshTargets(){
+      targetSelect.innerHTML = '<optgroup label="Producers">';
+      state.producers.forEach(p => { const opt = document.createElement('option'); opt.value = 'prod:' + p.id; opt.textContent = p.name; targetSelect.appendChild(opt); });
+      // perm boosts
+      const permGroup = document.createElement('optgroup'); permGroup.label = 'PermBoosts';
+      PERM_BOOST_TEMPLATES.forEach(b => { const opt = document.createElement('option'); opt.value = 'perm:' + b.id; opt.textContent = b.label; permGroup.appendChild(opt); });
+      targetSelect.appendChild(permGroup);
+      // consumables
+      if (typeof DEFAULT_BOOSTS !== 'undefined') {
+        const consGroup = document.createElement('optgroup'); consGroup.label = 'ConsumableBoosts';
+        DEFAULT_BOOSTS.forEach(b => { const opt = document.createElement('option'); opt.value = 'cons:' + b.id; opt.textContent = b.label; consGroup.appendChild(opt); });
+        targetSelect.appendChild(consGroup);
+      }
+    }
+    refreshTargets();
+
+    function refreshList(){
+      const list = content.querySelector('#scriptBlocksList'); list.innerHTML = '';
+      if (!state.scriptBlocks.length) list.innerHTML = '<div class="small muted">スクリプトはありません</div>';
+      state.scriptBlocks.forEach((s, i) => {
+        const row = document.createElement('div'); row.className='small'; row.style.padding='6px'; row.style.marginTop='6px'; row.style.background='rgba(255,255,255,0.01)';
+        row.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+          <div><strong>${s.name}</strong><div class="small muted">if ${s.trigger.type} >= ${s.trigger.value} → ${s.action.type} ${JSON.stringify(s.action.params)}</div></div>
+          <div>
+            <button class="btn runSB" data-i="${i}">実行</button>
+            <button class="btn secondary delSB" data-i="${i}">削除</button>
+          </div>
+        </div>`;
+        list.appendChild(row);
+      });
+    }
+    refreshList();
+
+    content.querySelector('#addScriptBlock').addEventListener('click', ()=>{
+      const name = content.querySelector('#sbName').value || ('script' + (state.scriptBlocks.length+1));
+      const trigType = content.querySelector('#sbTriggerType').value;
+      const trigVal = Number(content.querySelector('#sbTriggerVal').value || 0);
+      const actType = content.querySelector('#sbActionType').value;
+      const actTarget = content.querySelector('#sbActionTarget').value;
+      const actVal = Number(content.querySelector('#sbActionVal').value || 1);
+      const block = {
+        name: name,
+        trigger: { type: trigType, value: trigVal },
+        action: { type: actType, params: { target: actTarget, value: actVal } },
+        enabled: true
+      };
+      state.scriptBlocks.push(block);
+      save(true); refreshList(); log('スクリプトブロック追加: ' + name);
+    });
+
+    content.querySelector('#scriptBlocksList').addEventListener('click', e=>{
+      const run = e.target.closest('button.runSB'); const del = e.target.closest('button.delSB');
+      if (run){ const i = Number(run.dataset.i); executeScriptBlock(i); }
+      if (del){ const i = Number(del.dataset.i); if (confirm('削除しますか？')){ state.scriptBlocks.splice(i,1); save(true); refreshList(); } }
+    });
+
+    content.querySelector('#closeSB').addEventListener('click', closeModal);
+  }
+
+  // safe executor for blocks
+  function checkTrigger(trig){
+    if (!trig) return false;
+    switch(trig.type){
+      case 'coins': return state.coins >= trig.value;
+      case 'cps': return state.cps >= trig.value;
+      case 'stage': return state.stage >= trig.value;
+      default: return false;
+    }
+  }
+  function executeScriptBlock(i){
+    const s = state.scriptBlocks[i];
+    if (!s || !s.enabled) return false;
+    if (!checkTrigger(s.trigger)) { log('スクリプト条件未達: ' + s.name); return false; }
+    // perform action
+    const act = s.action;
+    if (act.type === 'buy'){
+      // target like 'prod:p05' and value is count
+      if (!act.params || !act.params.target) return false;
+      const parts = act.params.target.split(':');
+      if (parts[0] === 'prod'){
+        const pid = parts[1];
+        const count = Math.max(1, Number(act.params.value) || 1);
+        buyProducer(pid, count);
+        log('スクリプト購入実行: ' + pid + ' x' + count);
+        return true;
+      }
+    } else if (act.type === 'permBoost'){
+      if (!act.params || !act.params.target) return false;
+      const parts = act.params.target.split(':'); if (parts[0] !== 'perm') return false;
+      const bid = parts[1];
+      const tpl = PERM_BOOST_TEMPLATES.find(x=>x.id===bid);
+      if (!tpl) { log('スクリプト: 永続ブーストテンプレートなし: ' + bid); return false; }
+      const cost = getPermanentBoostCost(tpl);
+      if (state.coins < cost) { log('スクリプト: 所持金不足で永続ブースト買えず'); return false; }
+      state.coins -= cost; state.boosts = state.boosts || []; state.boosts.push({id: tpl.id, label: tpl.label, mult: tpl.mult, permanent:true});
+      save(true); calculateCPS(); renderUI(); log('スクリプト: 永続ブースト購入 ' + tpl.label);
+      return true;
+    } else if (act.type === 'consumableBoost'){
+      if (!act.params || !act.params.target) return false;
+      const parts = act.params.target.split(':'); if (parts[0] !== 'cons') return false;
+      const bid = parts[1];
+      if (typeof DEFAULT_BOOSTS === 'undefined') { log('スクリプト: 消費ブースト不在'); return false; }
+      const btpl = DEFAULT_BOOSTS.find(x=>x.id===bid);
+      if (!btpl) { log('スクリプト: 消費ブーストテンプレ無'); return false; }
+      if (state.coins < btpl.cost) { log('スクリプト: 所持金不足で消費ブースト'); return false; }
+      state.coins -= btpl.cost;
+      if (typeof applyBoost === 'function') applyBoost(btpl);
+      else state.boosts.push({id:btpl.id,label:btpl.label,mult:btpl.mult,expiry:Date.now() + (btpl.duration||30)*1000, permanent:false});
+      save(true); calculateCPS(); renderUI(); log('スクリプト: 消費ブースト使用 ' + btpl.label);
+      return true;
+    }
+    return false;
+  }
+
+  // periodic runner: execute enabled blocks if trigger true
+  setInterval(() => {
+    if (!state || !state.scriptBlocks || !state.scriptBlocks.length) return;
+    state.scriptBlocks.forEach((s, i) => {
+      try {
+        if (s.enabled && checkTrigger(s.trigger)) {
+          // to avoid runaway loops, execute at most one action per block per tick
+          executeScriptBlock(i);
+        }
+      } catch (e) { console.error('script block error', e); }
+    });
+  }, 4000); // 4s ごと評価
+
+  // expose manager to UI by overriding/opening existing script manager if any
+  window.openScriptManager = function(){ openScriptBlocksManager(); };
+
+  /***** 5) normalize & re-calc, then save *****/
+  try {
+    normalizeAllBaseProd();
+    calculateCPS && calculateCPS();
+    renderUI && renderUI();
+    save && save(true);
+    log('Part2適用完了：ユニット追加・生産量調整・永久ブースト価格強化・スクリプトブロック導入');
+  } catch (e) {
+    console.error('Part2: 初期化エラー', e);
+  }
+
+  /***** 6) ヘルプ（簡潔に操作を表示） *****/
+  // 小さなヘルプ表示はログにも追加
+  log('Part2: スクリプトブロックは「ブースト」モーダル横のスクリプト管理（openScriptManager()）で開けます。');
+})();
+</script> 
 </body>
 </html>
